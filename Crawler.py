@@ -2,9 +2,14 @@ import re
 import sqlite3
 import requests
 from bs4 import BeautifulSoup
+from matplotlib import pyplot as plt
+
 
 class Crawler:
     def __init__(self, dbFileName):
+        self.word_amount = [0]
+        self.url_amount = [0]
+        self.ref_amount = [0]
         self.conn = sqlite3.connect(dbFileName)
         self.conn.text_factory = lambda x: str(x, 'utf-8', 'ignore')
         self.cursor = self.conn.cursor()
@@ -99,7 +104,7 @@ class Crawler:
         for _ in range(maxDepth):
             new_pages = []
             for page_url in pages_to_crawl:
-                if page_url not in visited_pages and len(visited_pages) < 100:
+                if page_url not in visited_pages and len(visited_pages) < 10:
                     try:
                         response = requests.get(page_url)
                         response.raise_for_status()
@@ -139,7 +144,7 @@ class Crawler:
                                     continue
                         except Exception as e:
                             print(f"Ошибка поиска тэгов <a> {page_url}: {e}")
-                        
+                        self.reload_amounts()                    
                     except Exception as e:
                         print(f"Ошибка индексации страницы {page_url}: {e}")
  
@@ -185,6 +190,20 @@ class Crawler:
             print(f"Ошибка поиска или создания записи в бд: {e}")
 
 
+    def reload_amounts(self):
+        self.cursor.execute(f"SELECT COUNT(*) FROM wordList;")
+        count = self.cursor.fetchone()[0]
+        self.word_amount.append(int(count))
+
+        self.cursor.execute(f"SELECT COUNT(*) FROM URLList;")
+        count = self.cursor.fetchone()[0]
+        self.url_amount.append(int(count))
+
+        self.cursor.execute(f"SELECT COUNT(*) FROM linkBetweenURL;")
+        count = self.cursor.fetchone()[0]
+        self.ref_amount.append(int(count))
+
+
     def all_rows(self):
         # Получаем список всех таблиц в базе данных
         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -202,4 +221,24 @@ class Crawler:
 
         for table, count in table_record_counts.items():
             print(f"Таблица '{table}' содержит {count} записей.")
+
+    
+    def draw(self):
+        plt.plot(range(0, len(self.word_amount), 1), self.word_amount)
+        plt.title('WORD LIST')
+        plt.xlabel('Indexed')
+        plt.ylabel('Words')
+        plt.show()
+
+        plt.plot(range(0, len(self.url_amount), 1), self.url_amount)
+        plt.title('URL LIST')
+        plt.xlabel('Indexed')
+        plt.ylabel('URLS')
+        plt.show()
+
+        plt.plot(range(0, len(self.ref_amount), 1), self.ref_amount, "o-")
+        plt.title('REF LIST')
+        plt.xlabel('Indexed')
+        plt.ylabel('Refs')
+        plt.show()
 

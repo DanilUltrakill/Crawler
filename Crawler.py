@@ -104,7 +104,7 @@ class Crawler:
         for _ in range(maxDepth):
             new_pages = []
             for page_url in pages_to_crawl:
-                if page_url not in visited_pages and len(visited_pages) < 10:
+                if page_url not in visited_pages and len(visited_pages) < 100:
                     try:
                         response = requests.get(page_url)
                         response.raise_for_status()
